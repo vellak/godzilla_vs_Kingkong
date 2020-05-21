@@ -11,7 +11,7 @@ namespace components
         public string a2;
         public int score;
         public int health;
-        private int winNumb;
+        public int winNumb;
 
         public WinnerClass(Animator w, Animator l,int winNumb,string a1, string a2,  int score, int health)
         {

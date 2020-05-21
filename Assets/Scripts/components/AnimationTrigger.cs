@@ -17,12 +17,13 @@ namespace components
             winClass.w.SetTrigger(winClass.a2);
             
             // if the winner is King kong
-            if (winClass.Equals(2))
+            if (winClass.winNumb.Equals(2))
             {
                 // then for godzilla
                 foreach (var rigidbodyTail in winClass.l.gameObject.GetComponentsInChildren<Rigidbody>())
                     rigidbodyTail.isKinematic = true;
             }
+            
         }
     }
 }
