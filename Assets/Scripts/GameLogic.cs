@@ -9,7 +9,7 @@ using UnityEngine;
 public class GameLogic : MonoBehaviour
 {
     
-    [SerializeField] private float timerLength;
+    [SerializeField] internal float timerLength;
     [SerializeField] private Camera kongFightCam;
     [SerializeField] private Camera godzillaFightCam;
 
@@ -22,20 +22,28 @@ public class GameLogic : MonoBehaviour
     private KinectGestures.Gestures kkl = KinectGestures.Gestures.None;
     private KinectGestures.Gestures gzl = KinectGestures.Gestures.None;
 
-    [SerializeField] [Range(1, 20)] private int turnAmount;
+    [SerializeField] [Range(1, 20)] public int turnAmount;
+    internal int turnAmountTotal;
     private bool gameLoopRun = true;
-    private int currentRound = 0;
     private GameObject winnerObj;
     
     
     //Singleton
     public static GameLogic current;
+
+    public int CurrentRound { get; private set; } = 0;
+
     private void Awake()
     {
         current = this;
     }
     private void Start()
     {
+        if (turnAmount%2==0)
+        {
+            turnAmount++;
+            turnAmountTotal = turnAmount;
+        }
         /*/
          initialize 2d Matrix
          start timer for round
@@ -51,16 +59,16 @@ public class GameLogic : MonoBehaviour
     private void Update()
     {
         #region get User Input
-        
+        //print("update");
         if (kkl == KinectGestures.Gestures.None)
         {
             kkl = kkListener.GetGesture();
-            print(kkl.ToString());
+            //print(kkl.ToString());
         }
         if (gzl == KinectGestures.Gestures.None)
         {
             gzl = gzListener.GetGesture();
-            print(gzl.ToString());
+            //print(gzl.ToString());
         }
         #endregion
 
@@ -68,10 +76,12 @@ public class GameLogic : MonoBehaviour
         
         if (gameLoopRun)
         {
+            //print("gameloop");
+            GameEventSystem.current.TriggerRoundStart();
             StartCoroutine(Timer(timerLength));
-            FightingSim(gzl, kkl);
+            
         }
-        if (currentRound >= turnAmount)
+        if (CurrentRound >= turnAmount)
         {
             
         }
@@ -82,11 +92,16 @@ public class GameLogic : MonoBehaviour
     {
         gameLoopRun = false;
         yield return new WaitForSeconds(time);
+        print("Game Fighting Sim starts");
+        FightingSim(gzl, kkl);
+        yield return new WaitForSeconds(time);
+        print("Game Loop Started");
         gameLoopRun = true;
     }
 
     private void FightingSim(KinectGestures.Gestures gzl, KinectGestures.Gestures kkl)
     {
+        //print("fighting Sim");
         var gzmove = 0;
         var kkMove = 0;
         var winner = WinnerEnum.Draw;
@@ -95,7 +110,7 @@ public class GameLogic : MonoBehaviour
         kkMove = SetKkMove(kkl, kkMove);
         
         winner = DecideWinner(gzmove, kkMove, out var numb);
-        print(winner);
+        //print(winner);
         // runs code depending on the winner and the move used to win.
         // used for running animations and sounds mainly.
         WinnerCode(winner, numb);
@@ -106,35 +121,38 @@ public class GameLogic : MonoBehaviour
 
     private void WinnerCode(WinnerEnum winner, int numb)
     {
+        //print("Winner Code");
         switch (winner)
         {
             case WinnerEnum.Draw:
+                //print("Draw case");
                 winnerObj = null;
-                // dont do anything 
+                RoundFinalCode(0, null, null, null);
+                CurrentRound+= 1;
                 break;
             case WinnerEnum.Godzilla:
+                print("GZ case");
                 winnerObj = gzAnimator.gameObject;
                 RoundFinalCode(1, gzAnimator, kkAnimator, numb.ToString());
-                currentRound++;
+                CurrentRound+= 1;
                 break;
             case WinnerEnum.Kong:
+                print("kk case");
                 winnerObj = kkAnimator.gameObject;
                 RoundFinalCode(2, kkAnimator, gzAnimator, numb.ToString());
-                currentRound++;
+                CurrentRound+= 1;
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
         }
     }
-    private void RoundFinalCode(int winnernum, Animator winner, Animator loser, string animationTriggerWinner)
+    private static void RoundFinalCode(int winnernum, Animator winner, Animator loser, string animationTriggerWinner)
     {
-        //change camera
-        //run animation
-        // reduce points, 
-        var wc = new WinnerClass(winner, loser,winnernum, "die", animationTriggerWinner, 1, 1);
+        var wc = new WinnerClass(winner, loser,winnernum, "die", animationTriggerWinner, 1,1);
         GameEventSystem.current.TriggerWinnerFound(wc);
-        //TriggerAnimation(winner, loser, animationTriggerWinner);
+        //print("roundFinal Code");
     }
+    
     private WinnerEnum DecideWinner(int gzmove, int kkMove, out int number)
     {
         number = 0;

@@ -10,10 +10,10 @@ namespace components
         public string a1;
         public string a2;
         public int score;
-        public int health;
+        public int damage;
         public int winNumb;
 
-        public WinnerClass(Animator w, Animator l,int winNumb,string a1, string a2,  int score, int health)
+        public WinnerClass(Animator w, Animator l,int winNumb,string a1, string a2,  int score, int damage)
         {
             this.w = w;
             this.l = l;
@@ -21,7 +21,7 @@ namespace components
             this.a1 = a1;
             this.a2 = a2;
             this.score = score;
-            this.health = health;
+            this.damage = damage;
         }
     }
 }
