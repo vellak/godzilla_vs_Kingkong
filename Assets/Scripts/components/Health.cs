@@ -4,29 +4,18 @@ namespace components
 {
     public class Health : MonoBehaviour
     {
-        private float lifePoints;
-        public int character;
-        private float maxHealth = 100;
+        [Range(0,1)]
+        internal float lifePoints;
+        public Score playerScore;
+        
         private void Start()
         {
-            maxHealth = lifePoints;
-            GameEventSystem.current.OnWinnerFound += OnWinnerfound;
+            lifePoints = 1f;
+            GameEventSystem.current.OnScoreUpdate += OnWinnerFound;
         }
-        private void OnWinnerfound(WinnerClass obj)
+        private void OnWinnerFound()
         {
-            if (obj.winNumb != character /* && obj.winNumb != 0*/)
-            { 
-                ReduceHealth(obj.damage);  
-            }
-        }
-        public void ReduceHealth(int damage)
-        {
-            lifePoints -=damage;
-            if (lifePoints <= 1)
-            {
-                lifePoints = 0;
-                GameEventSystem.current.TriggerCharacterDie();
-            }
+            lifePoints = 1f * (GameLogic.current.bestOutOf - playerScore.losses) / GameLogic.current.bestOutOf;
         }
     }
 }

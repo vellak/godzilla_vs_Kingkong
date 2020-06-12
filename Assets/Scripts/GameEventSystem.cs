@@ -9,20 +9,15 @@ public class GameEventSystem : MonoBehaviour
     {
         current = this;
     }
-    public event Action<int> OnUpdateTimer = delegate {  };
     public event Action<WinnerClass> OnWinnerFound = delegate {  };
     public event Action OnAnimationFinished = delegate {  };
     public event Action OnAnimationStarted = delegate {  };
     public event Action OnRoundStart = delegate {  };
-    
-    public event Action OnCharacterDie = delegate {  };
+    public event Action OnScoreUpdate = delegate {  };
+    public event Action OnPlayerWinGame = delegate {  };
     public void TriggerWinnerFound(WinnerClass t)
     {
         OnWinnerFound(t);
-    }
-    public void TriggerUpdateTimer(int time)
-    {
-        OnUpdateTimer(time);
     }
 
     public void TriggerRoundStart()
@@ -30,9 +25,9 @@ public class GameEventSystem : MonoBehaviour
         OnRoundStart();
     }
 
-    public void TriggerCharacterDie()
+    public void TriggerPlayerWinGame()
     {
-        OnCharacterDie();
+        OnPlayerWinGame();
     }
 
     public void TriggerAnimationFinished()
@@ -42,5 +37,10 @@ public class GameEventSystem : MonoBehaviour
     public void TriggerAnimationStarted()
     {
         OnAnimationStarted();
+    }
+
+    public void TriggerScoreUpdate()
+    {
+        OnScoreUpdate();
     }
 }

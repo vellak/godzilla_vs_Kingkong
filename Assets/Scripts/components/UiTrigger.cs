@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -7,68 +8,65 @@ namespace components
 {
     public class UiTrigger : MonoBehaviour
     {
-        public Image healthGz;
-        public Image healthKk;
+        public Health gzHealth;
+        public Health kkHealth;
+        public Score kkScore;
+        public Score gzScore;
+        public Image gzImage;
+        public Image kkImage;
+
+        public Text currentRound;
+        [SerializeField] private Text gzScoreText;
+        [SerializeField] private Text kkScoreText;
         private float timerTime;
         [SerializeField] private Text timerText;
-
-        private WinnerClass wc;
-        private bool timerActive = true;
+        [SerializeField] private GameObject panel;
+        private bool activate;
 
         private void Start()
         {
             GameEventSystem.current.OnRoundStart += OnRoundStart;
-            GameEventSystem.current.OnWinnerFound += OnWinnerfound;
-            GameEventSystem.current.OnAnimationFinished += OnFadeOutBlack;
             GameEventSystem.current.OnAnimationStarted += OnFadeInBlack;
+            GameEventSystem.current.OnWinnerFound += OnWinnerfound;
         }
 
         private void OnFadeInBlack()
         {
-            print("Fade In UI " + timerTime);
             timerTime = GameLogic.current.timerLength;
-            switch (wc.winNumb)
+            if (activate)
             {
-                case 0:
-                    healthKk.fillAmount = GetHealthValue();
-                    healthGz.fillAmount = GetHealthValue();
-                    break;
-                case 1:
-                    healthGz.fillAmount = GetHealthValue();
-                    break;
-                case 2:
-                    healthGz.fillAmount = GetHealthValue();
-                    break;
-            }
-        }
+                if (kkImage != null) kkImage.fillAmount = kkHealth.lifePoints;
+                if (gzHealth != null) gzImage.fillAmount = gzHealth.lifePoints;
 
-        private void OnFadeOutBlack()
-        {
-            print("Fade OUT UI " + timerTime);
-            timerActive = true;
+                if (kkScoreText != null) kkScoreText.text = kkScore.wins.ToString();
+                if (gzScore != null) gzScoreText.text = gzScore.wins.ToString();
+
+                timerText.enabled = false;
+                panel.SetActive(false);
+            }
         }
 
         private void OnRoundStart()
         {
+            panel.SetActive(true);
+            if (currentRound != null) currentRound.text = GameLogic.current.CurrentRound.ToString();
+            timerText.enabled = true;
             timerTime = GameLogic.current.timerLength;
+            activate = false;
         }
 
         private void Update()
         {
-            timerTime -= Time.deltaTime;
-            timerText.text = timerTime.ToString("F1");
-        }
-
-        private static float GetHealthValue()
-        {
-            var t = 1 - (float) GameLogic.current.CurrentRound / GameLogic.current.turnAmount;
-            return t;
+            timerTime -= Time.smoothDeltaTime;
+            if (timerText.enabled)
+            {
+                timerText.text = ((int) timerTime).ToString();
+            }
         }
 
         public void OnWinnerfound(WinnerClass winClass)
         {
-            timerActive = false;
-            wc = winClass;
+            activate = true;
         }
     }
 }

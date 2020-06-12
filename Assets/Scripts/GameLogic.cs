@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using components;
-using K2Examples.KinectScripts.Samples;
 using UnityEngine;
 
 
@@ -10,11 +9,8 @@ public class GameLogic : MonoBehaviour
 {
     
     [SerializeField] internal float timerLength;
-    [SerializeField] private Camera kongFightCam;
-    [SerializeField] private Camera godzillaFightCam;
-
     [SerializeField] private GodzillaGestureListener gzListener;
-    [SerializeField] private SimpleGestureListener kkListener;
+    [SerializeField] private KingKongGestureListener kkListener;
 
     [SerializeField] private Animator gzAnimator;
     [SerializeField] private Animator kkAnimator;
@@ -23,11 +19,13 @@ public class GameLogic : MonoBehaviour
     private KinectGestures.Gestures gzl = KinectGestures.Gestures.None;
 
     [SerializeField] [Range(1, 20)] public int turnAmount;
-    internal int turnAmountTotal;
+    private int winningMove = 0;
     private bool gameLoopRun = true;
-    private GameObject winnerObj;
-    
-    
+    internal int bestOutOf;
+
+
+    public bool overrideWinner;
+    public int newWinner;
     //Singleton
     public static GameLogic current;
 
@@ -39,11 +37,12 @@ public class GameLogic : MonoBehaviour
     }
     private void Start()
     {
+        
         if (turnAmount%2==0)
         {
             turnAmount++;
-            turnAmountTotal = turnAmount;
         }
+        bestOutOf = 1 + (int) Mathf.Floor(turnAmount/2f);
         /*/
          initialize 2d Matrix
          start timer for round
@@ -58,6 +57,7 @@ public class GameLogic : MonoBehaviour
     }
     private void Update()
     {
+        
         #region get User Input
         //print("update");
         if (kkl == KinectGestures.Gestures.None)
@@ -71,31 +71,22 @@ public class GameLogic : MonoBehaviour
             //print(gzl.ToString());
         }
         #endregion
-
         #region Game Loop
-        
         if (gameLoopRun)
         {
             //print("gameloop");
-            GameEventSystem.current.TriggerRoundStart();
             StartCoroutine(Timer(timerLength));
-            
-        }
-        if (CurrentRound >= turnAmount)
-        {
-            
         }
         #endregion GameLoop
     }
-
     private IEnumerator Timer(float time)
     {
         gameLoopRun = false;
+        winningMove = 0;
+        GameEventSystem.current.TriggerRoundStart();
         yield return new WaitForSeconds(time);
-        print("Game Fighting Sim starts");
         FightingSim(gzl, kkl);
         yield return new WaitForSeconds(time);
-        print("Game Loop Started");
         gameLoopRun = true;
     }
 
@@ -104,20 +95,27 @@ public class GameLogic : MonoBehaviour
         //print("fighting Sim");
         var gzmove = 0;
         var kkMove = 0;
-        var winner = WinnerEnum.Draw;
+        WinnerEnum winner;
 
         gzmove = SetGzmove(gzl, gzmove);
         kkMove = SetKkMove(kkl, kkMove);
         
         winner = DecideWinner(gzmove, kkMove, out var numb);
+        winningMove = numb;
+        if (overrideWinner)
+        {
+            winner = (WinnerEnum) newWinner;
+            winningMove = 1;
+        }
+        
         //print(winner);
         // runs code depending on the winner and the move used to win.
         // used for running animations and sounds mainly.
-        WinnerCode(winner, numb);
+        WinnerCode(winner, winningMove);
         // this sets the gestures back to their original Values so they can be set again in the next round.
         this.gzl = KinectGestures.Gestures.None;
         this.kkl = KinectGestures.Gestures.None;
-    }
+    }    
 
     private void WinnerCode(WinnerEnum winner, int numb)
     {
@@ -126,29 +124,24 @@ public class GameLogic : MonoBehaviour
         {
             case WinnerEnum.Draw:
                 //print("Draw case");
-                winnerObj = null;
                 RoundFinalCode(0, null, null, null);
-                CurrentRound+= 1;
                 break;
             case WinnerEnum.Godzilla:
                 print("GZ case");
-                winnerObj = gzAnimator.gameObject;
                 RoundFinalCode(1, gzAnimator, kkAnimator, numb.ToString());
-                CurrentRound+= 1;
                 break;
             case WinnerEnum.Kong:
                 print("kk case");
-                winnerObj = kkAnimator.gameObject;
                 RoundFinalCode(2, kkAnimator, gzAnimator, numb.ToString());
-                CurrentRound+= 1;
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
         }
     }
-    private static void RoundFinalCode(int winnernum, Animator winner, Animator loser, string animationTriggerWinner)
+    private void RoundFinalCode(int winnernum, Animator winner, Animator loser, string animationTriggerWinner)
     {
-        var wc = new WinnerClass(winner, loser,winnernum, "die", animationTriggerWinner, 1,1);
+        CurrentRound++;
+        var wc = new WinnerClass(winner, loser,winnernum, "IsAttacked", animationTriggerWinner, 1, winningMove);
         GameEventSystem.current.TriggerWinnerFound(wc);
         //print("roundFinal Code");
     }
@@ -159,18 +152,20 @@ public class GameLogic : MonoBehaviour
         WinnerEnum winner;
         if (gzmove == 0 && kkMove == 0)
         {
+            winningMove = 0;
             winner = WinnerEnum.Draw;
         }
         //checks king kong
         else if (kkMove == 0)
         {
-            number = gzmove;
+            winningMove= number = gzmove;
+            
             winner = WinnerEnum.Godzilla;
         }
         //checks Godzilla
         else if (gzmove == 0)
         {
-            number = kkMove;
+            winningMove=number = kkMove;
             winner = WinnerEnum.Kong;
         }
         else
@@ -178,6 +173,14 @@ public class GameLogic : MonoBehaviour
             //if both of them did a move, then decipher the moves to see who wins
             winner = TwoDMatrixLookup(kkMove, gzmove,out var num);
             number = num;
+            if (winner == WinnerEnum.Kong )
+            {
+                winningMove = kkMove;
+            }
+            else
+            {
+                winningMove = gzmove;
+            }
         }
         return winner;
     }
